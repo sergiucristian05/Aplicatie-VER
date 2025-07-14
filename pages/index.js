@@ -185,7 +185,7 @@ export default function Home() {
         </label>
         <button
           type="submit"
-          className="green-500 text-white p-2 rounded hover:bg-blue-600"
+          className="blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
           {editId ? "Salvează modificările" : "Adaugă mașină"}
         </button>
