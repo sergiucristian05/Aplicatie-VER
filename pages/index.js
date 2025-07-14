@@ -136,11 +136,11 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto mt-10 px-4 pb-10">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
       <h1 className="text-2xl font-bold mb-6 text-center">Flota VERITAS</h1>
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 mb-6 max-w-xl mx-auto"
+        className="grid gap-4 mb-6 w-full max-w-md"
       >
         <input
           type="text"
@@ -185,61 +185,58 @@ export default function Home() {
         </label>
         <button
           type="submit"
-          className="blue-500 text-white p-2 rounded hover:bg-blue-600"
+          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
           {editId ? "Salvează modificările" : "Adaugă mașină"}
         </button>
       </form>
 
-      <div className="mt-10 w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto max-w-md">
         <h2 className="text-xl font-bold mb-4 text-center">Mașini în flotă</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full md:w-4/5 mx-auto table-auto border-collapse border border-gray-200">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="p-2 border border-gray-300">Marcă</th>
-                <th className="p-2 border border-gray-300">Număr</th>
-                <th className="p-2 border border-gray-300">ITP</th>
-                <th className="p-2 border border-gray-300">RCA</th>
-                <th className="p-2 border border-gray-300">Rovinietă</th>
-                <th className="p-2 border border-gray-300">Acțiuni</th>
+        <table className="w-full table-auto border-collapse border border-gray-200">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="p-2 border border-gray-300">Marcă</th>
+              <th className="p-2 border border-gray-300">Număr</th>
+              <th className="p-2 border border-gray-300">ITP</th>
+              <th className="p-2 border border-gray-300">RCA</th>
+              <th className="p-2 border border-gray-300">Rovinietă</th>
+              <th className="p-2 border border-gray-300">Acțiuni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {masini.map((masina) => (
+              <tr key={masina.id}>
+                <td className="p-2 border border-gray-300">{masina.marca}</td>
+                <td className="p-2 border border-gray-300">{masina.numar}</td>
+                <td className="p-2 border border-gray-300">{masina.itp}</td>
+                <td className="p-2 border border-gray-300">{masina.rca}</td>
+                <td className="p-2 border border-gray-300">{masina.rovinieta}</td>
+                <td className="p-2 border border-gray-300 text-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(masina)}
+                    className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
+                  >
+                    Editează
+                  </button>
+                  <button
+                    onClick={() => handleDelete(masina.id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                  >
+                    Șterge
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {masini.map((masina) => (
-                <tr key={masina.id}>
-                  <td className="p-2 border border-gray-300">{masina.marca}</td>
-                  <td className="p-2 border border-gray-300">{masina.numar}</td>
-                  <td className="p-2 border border-gray-300">{masina.itp}</td>
-                  <td className="p-2 border border-gray-300">{masina.rca}</td>
-                  <td className="p-2 border border-gray-300">{masina.rovinieta}</td>
-                  <td className="p-2 border border-gray-300 text-center space-x-2">
-                    <button
-                      onClick={() => handleEdit(masina)}
-                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
-                    >
-                      Editează
-                    </button>
-                    <button
-                      onClick={() => handleDelete(masina.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                    >
-                      Șterge
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {masini.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="p-4 text-center text-gray-500">
-                    Nicio mașină adăugată.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-
-          </table>
-        </div>
+            ))}
+            {masini.length === 0 && (
+              <tr>
+                <td colSpan="6" className="p-4 text-center text-gray-500">
+                  Nicio mașină adăugată.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
