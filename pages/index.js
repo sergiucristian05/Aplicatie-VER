@@ -7,11 +7,12 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  getDocs,
   setDoc,
   getDoc,
 } from "firebase/firestore";
-import dayjs from "dayjs";
 import { trimiteEmailNotificare } from "../utils/notificare";
+import dayjs from "dayjs";
 
 export default function Home() {
   const [marca, setMarca] = useState("");
@@ -29,46 +30,59 @@ export default function Home() {
         ...doc.data(),
       }));
       setMasini(masiniFirebase);
-
-      masiniFirebase.forEach((masina) => verificaExpirari(masina));
     });
 
     return () => unsubscribe();
   }, []);
 
-  const verificaExpirari = async (masina) => {
-    const { id, marca, numar, itp, rca, rovinieta } = masina;
-    const acum = dayjs();
-    const expirari = [];
+  useEffect(() => {
+    const verificaExpirari = async () => {
+      const snapshot = await getDocs(collection(db, "masini"));
+      snapshot.forEach(async (docMasina) => {
+        const data = docMasina.data();
+        const id = docMasina.id;
+        const expirari = [];
 
-    const verificari = [
-      { tip: "ITP", data: itp },
-      { tip: "RCA", data: rca },
-      { tip: "Rovinietă", data: rovinieta },
-    ];
+        const documente = [
+          { tip: "ITP", data: data.itp },
+          { tip: "RCA", data: data.rca },
+          { tip: "Rovinietă", data: data.rovinieta },
+        ];
 
-    for (const { tip, data } of verificari) {
-      const dataExp = dayjs(data);
-      const diferenta = dataExp.diff(acum, "day");
+        for (const docItem of documente) {
+          const dataExp = dayjs(docItem.data);
+          const diferenta = dataExp.diff(dayjs(), "day");
 
-      const docRef = doc(db, "notificari", `${id}_${tip}`);
-      const notificareExistenta = await getDoc(docRef);
+          if (diferenta <= 10) {
+            const idNotificare = `${id}_${docItem.tip}`;
+            const docRef = doc(db, "notificari", idNotificare);
+            const notificareExistenta = await getDoc(docRef);
 
-      if (diferenta <= 10 && !notificareExistenta.exists()) {
-        expirari.push(`${tip} (expiră la ${dataExp.format("DD-MM-YYYY")})`);
-        await setDoc(docRef, {
-          masinaId: id,
-          tip,
-          dataExpirare: dataExp.toISOString(),
-          trimisLa: new Date().toISOString(),
-        });
-      }
-    }
+            if (!notificareExistenta.exists()) {
+              expirari.push(`${docItem.tip} - ${dataExp.format("DD-MM-YYYY")}`);
 
-    if (expirari.length > 0) {
-      trimiteEmailNotificare({ marca, numar, expirari: expirari.join("\n") });
-    }
-  };
+              await setDoc(docRef, {
+                masinaId: id,
+                tip: docItem.tip,
+                dataExpirare: dataExp.toISOString(),
+                trimisLa: new Date().toISOString(),
+              });
+            }
+          }
+        }
+
+        if (expirari.length > 0) {
+          trimiteEmailNotificare({
+            marca: data.marca,
+            numar: data.numar,
+            expirari: expirari.join(", "),
+          });
+        }
+      });
+    };
+
+    verificaExpirari();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,9 +136,12 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-screen-xl mx-auto mt-10 px-4">
+    <div className="max-w-screen-xl mx-auto mt-10 px-4 pb-10">
       <h1 className="text-2xl font-bold mb-6 text-center">Flota VERITAS</h1>
-      <form onSubmit={handleSubmit} className="grid gap-4 mb-6 max-w-xl mx-auto">
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-4 mb-6 max-w-xl mx-auto"
+      >
         <input
           type="text"
           placeholder="Marcă"
@@ -174,53 +191,52 @@ export default function Home() {
         </button>
       </form>
 
-      <div className="mt-10 w-4/5 mx-auto">
-        <h2 className="text-xl font-bold mb-4">Mașini în flotă</h2>
-        <table className="w-full table-auto border-collapse border border-gray-200">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2 border border-gray-300">Marcă</th>
-              <th className="p-2 border border-gray-300">Număr</th>
-              <th className="p-2 border border-gray-300">ITP</th>
-              <th className="p-2 border border-gray-300">RCA</th>
-              <th className="p-2 border border-gray-300">Rovinietă</th>
-              <th className="p-2 border border-gray-300">Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {masini.map((masina) => (
-              <tr key={masina.id}>
-                <td className="p-2 border border-gray-300">{masina.marca}</td>
-                <td className="p-2 border border-gray-300">{masina.numar}</td>
-                <td className="p-2 border border-gray-300">{masina.itp}</td>
-                <td className="p-2 border border-gray-300">{masina.rca}</td>
-                <td className="p-2 border border-gray-300">{masina.rovinieta}</td>
-                <td className="p-2 border border-gray-300 text-center space-x-2">
-                  <button
-                    onClick={() => handleEdit(masina)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
-                  >
-                    Editează
-                  </button>
-                  <button
-                    onClick={() => handleDelete(masina.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-                  >
-                    Șterge
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {masini.length === 0 && (
-              <tr>
-                <td colSpan="6" className="p-4 text-center text-gray-500">
-                  Nicio mașină adăugată.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+      <div className="mt-10 w-full px-2 md:w-4/5 mx-auto">
+  <h2 className="text-xl font-bold mb-4 text-center">Mașini în flotă</h2>
+  <div className="overflow-x-auto">
+    <table className="min-w-full table-auto border-collapse border border-gray-200">
+      <thead className="bg-gray-200">
+        <tr>
+          <th className="p-2 border border-gray-300">Marcă</th>
+          <th className="p-2 border border-gray-300">Număr</th>
+          <th className="p-2 border border-gray-300">ITP</th>
+          <th className="p-2 border border-gray-300">RCA</th>
+          <th className="p-2 border border-gray-300">Rovinietă</th>
+          <th className="p-2 border border-gray-300">Acțiuni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {masini.map((masina) => (
+          <tr key={masina.id}>
+            <td className="p-2 border border-gray-300">{masina.marca}</td>
+            <td className="p-2 border border-gray-300">{masina.numar}</td>
+            <td className="p-2 border border-gray-300">{masina.itp}</td>
+            <td className="p-2 border border-gray-300">{masina.rca}</td>
+            <td className="p-2 border border-gray-300">{masina.rovinieta}</td>
+            <td className="p-2 border border-gray-300 text-center space-x-2">
+              <button
+                onClick={() => handleEdit(masina)}
+                className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
+              >
+                Editează
+              </button>
+              <button
+                onClick={() => handleDelete(masina.id)}
+                className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+              >
+                Șterge
+              </button>
+            </td>
+          </tr>
+        ))}
+        {masini.length === 0 && (
+          <tr>
+            <td colSpan="6" className="p-4 text-center text-gray-500">
+              Nicio mașină adăugată.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
